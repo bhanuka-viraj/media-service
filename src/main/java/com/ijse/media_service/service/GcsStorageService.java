@@ -24,12 +24,29 @@ public class GcsStorageService {
     private final Storage storage;
 
     public GcsStorageService(
-            @Value("${gcp.storage.bucket-name:enterprise-cloud-media-bucket}") String bucketName,
-            @Value("${gcp.project-id:enterprise-cloud-module-503705}") String projectId
+            @Value("${gcp.storage.bucket-name:${GCP_BUCKET_NAME:educloud-media-bucket-535026634701}}") String bucketName,
+            @Value("${gcp.project-id:${GCP_PROJECT_ID:enterprise-cloud-module-503705}}") String projectId
     ) {
-        this.bucketName = bucketName;
-        this.projectId = projectId;
-        this.storage = StorageOptions.newBuilder().setProjectId(projectId).build().getService();
+        String resolvedBucket = System.getProperty("GCP_BUCKET_NAME");
+        if (resolvedBucket == null || resolvedBucket.isBlank()) {
+            resolvedBucket = System.getenv("GCP_BUCKET_NAME");
+        }
+        if (resolvedBucket == null || resolvedBucket.isBlank()) {
+            resolvedBucket = bucketName;
+        }
+
+        String resolvedProject = System.getProperty("GCP_PROJECT_ID");
+        if (resolvedProject == null || resolvedProject.isBlank()) {
+            resolvedProject = System.getenv("GCP_PROJECT_ID");
+        }
+        if (resolvedProject == null || resolvedProject.isBlank()) {
+            resolvedProject = projectId;
+        }
+
+        this.bucketName = resolvedBucket;
+        this.projectId = resolvedProject;
+        System.out.println("[GCS STORAGE] Initializing GCS for bucket: " + this.bucketName + " in project: " + this.projectId);
+        this.storage = StorageOptions.newBuilder().setProjectId(this.projectId).build().getService();
     }
 
     public MediaUploadResponseDTO uploadFile(MultipartFile file) {
